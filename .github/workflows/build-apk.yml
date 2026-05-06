@@ -9,6 +9,7 @@ on:
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
+    
     permissions:
       contents: write
 
@@ -19,7 +20,7 @@ jobs:
       - name: Configuration de Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Configuration de Java (Requis pour Android)
         uses: actions/setup-java@v4

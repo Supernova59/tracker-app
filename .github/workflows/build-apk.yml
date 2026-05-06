@@ -43,8 +43,8 @@ jobs:
       - name: Compilation de l'APK Android
         run: cd android && ./gradlew assembleDebug
 
-      - name: Nom de l'APK
-        run : mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/tacker-app.apk
+      - name: Renommer l'APK
+        run: mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/tracker-app.apk
 
       - name: Générer un tag basé sur la date
         id: tag_generator

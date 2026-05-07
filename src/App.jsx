@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import MealTracker from './MealTracker';
 import SportTracker from './SportTracker';
 import EvolutionTracker from './EvolutionTracker';
 import RecipeBook from './RecipeBook';
 import LockScreen from './LockScreen';
+import Onboarding from './Onboarding';
 import { useAsyncStorage } from './hooks/useAsyncStorage';
 import { getEncrypted, saveEncrypted } from './encryptionUtils';
+import ShoppingList from './ShoppingList';
 
 const Settings = ({ darkMode, setDarkMode }) => {
   const [goals, setGoals, goalsLoaded] = useAsyncStorage('tracker_goals', { calories: 2500, protein: 160, carbs: 300, fat: 80 });
@@ -21,7 +24,6 @@ const Settings = ({ darkMode, setDarkMode }) => {
   const handleChangePin = async (e) => {
     e.preventDefault();
     const actualPin = await getEncrypted('tracker_pin', '1234');
-
     if (pinData.current !== actualPin) {
       alert('Le code actuel est incorrect.');
       return;
@@ -34,7 +36,6 @@ const Settings = ({ darkMode, setDarkMode }) => {
       alert('Les nouveaux codes ne correspondent pas.');
       return;
     }
-
     await saveEncrypted('tracker_pin', pinData.new);
     alert('Code PIN mis à jour avec succès !');
     setPinData({ current: '', new: '', confirm: '' });
@@ -88,9 +89,8 @@ const Settings = ({ darkMode, setDarkMode }) => {
 
   return (
     <div className="p-4 max-w-[480px] mx-auto font-sans pb-24 space-y-4">
-      
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-50">
-        <h2 className="m-0 mb-4 text-lg font-bold text-[#1a1a2e]">Apparence</h2>
+        <h2 className="m-0 mb-4 text-lg font-bold text-[#1a1a2e]">🌙 Apparence</h2>
         <div className="flex justify-between items-center">
           <span className="text-sm font-semibold text-gray-600">Mode Sombre</span>
           <button onClick={() => setDarkMode(!darkMode)} className={`border-none px-4 py-2 rounded-full font-bold text-xs transition-all ${darkMode ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
@@ -98,9 +98,8 @@ const Settings = ({ darkMode, setDarkMode }) => {
           </button>
         </div>
       </div>
-
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-50">
-        <h2 className="m-0 mb-4 text-lg font-bold text-[#1a1a2e]">Objectifs</h2>
+        <h2 className="m-0 mb-4 text-lg font-bold text-[#1a1a2e]">🎯 Objectifs</h2>
         <form onSubmit={handleSaveGoals} className="space-y-3">
           {['calories', 'protein', 'carbs', 'fat'].map(f => (
             <div key={f} className="flex justify-between items-center">
@@ -111,9 +110,8 @@ const Settings = ({ darkMode, setDarkMode }) => {
           <button type="submit" className="w-full bg-emerald-500 text-white py-2.5 rounded-xl font-bold mt-2 shadow-md shadow-emerald-50">Enregistrer</button>
         </form>
       </div>
-
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-50">
-        <h2 className="m-0 mb-4 text-lg font-bold text-[#1a1a2e]">Sécurité</h2>
+        <h2 className="m-0 mb-4 text-lg font-bold text-[#1a1a2e]">🔒 Sécurité</h2>
         {!showPinForm ? (
           <button onClick={() => setShowPinForm(true)} className="w-full bg-gray-50 text-gray-600 py-3 rounded-xl font-bold text-sm border-none cursor-pointer">Changer le code PIN</button>
         ) : (
@@ -128,9 +126,8 @@ const Settings = ({ darkMode, setDarkMode }) => {
           </form>
         )}
       </div>
-
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-50">
-        <h2 className="m-0 mb-4 text-lg font-bold text-[#1a1a2e]">Sauvegarde</h2>
+        <h2 className="m-0 mb-4 text-lg font-bold text-[#1a1a2e]">💾 Sauvegarde</h2>
         <div className="grid grid-cols-1 gap-3">
           <button onClick={handleExport} className="bg-indigo-50 text-indigo-600 py-3 rounded-xl font-bold text-sm border-none">Exporter JSON</button>
           <label className="bg-gray-50 text-gray-600 py-3 rounded-xl font-bold text-sm text-center cursor-pointer">
@@ -143,10 +140,41 @@ const Settings = ({ darkMode, setDarkMode }) => {
   );
 };
 
-function App() {
-  const [activeTab, setActiveTab] = useState('meals');
+const BottomNav = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const tabs = [
+    { id: '/', icon: '🍽️', label: 'Repas', color: 'text-indigo-600' },
+    { id: '/sport', icon: '💪', label: 'Sport', color: 'text-emerald-600' },
+    { id: '/recipes', icon: '🧑‍🍳', label: 'Recettes', color: 'text-rose-600' },
+    { id: '/evolution', icon: '📈', label: 'Évolution', color: 'text-amber-600' },
+    { id: '/settings', icon: '⚙️', label: 'Profil', color: 'text-slate-600' }
+  ];
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-lg flex justify-around py-3 pb-6 border-t border-gray-100 z-[100] rounded-t-[24px] shadow-2xl">
+      {tabs.map(tab => {
+        const isActive = location.pathname === tab.id;
+        return (
+          <button key={tab.id} onClick={() => navigate(tab.id)} className={`flex-1 bg-transparent border-none flex flex-col items-center gap-1 transition-all ${isActive ? tab.color : 'text-gray-400'}`}>
+            <span className={`text-xl ${isActive ? 'scale-110' : 'opacity-50 grayscale'}`}>{tab.icon}</span>
+            <span className="text-[10px] font-black uppercase tracking-tighter">{tab.label}</span>
+          </button>
+        );
+      })}
+    </nav>
+  );
+};
+
+const AppContent = () => {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('tracker_dark_mode') === 'true');
+  const [hasOnboarded, setHasOnboarded] = useState(null);
+
+  useEffect(() => {
+    if (isUnlocked) {
+      getEncrypted('tracker_onboarded', false).then(val => setHasOnboarded(val));
+    }
+  }, [isUnlocked]);
 
   useEffect(() => {
     localStorage.setItem('tracker_dark_mode', darkMode);
@@ -168,35 +196,29 @@ function App() {
   }, [darkMode]);
 
   if (!isUnlocked) return <LockScreen onUnlock={() => setIsUnlocked(true)} />;
+  if (hasOnboarded === null) return null;
+  if (!hasOnboarded) return <Onboarding />;
 
   return (
     <div className="min-h-screen bg-transparent">
-      
-      {activeTab === 'meals' && <MealTracker />}
-      {activeTab === 'sport' && <SportTracker />}
-      {activeTab === 'recipes' && <RecipeBook />}
-      {activeTab === 'evolution' && <EvolutionTracker />}
-      {activeTab === 'settings' && <Settings darkMode={darkMode} setDarkMode={setDarkMode} />}
-
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-lg flex justify-around py-3 pb-6 border-t border-gray-100 z-[100] rounded-t-[24px] shadow-2xl">
-        {[
-          { id: 'meals', icon: '', label: 'Repas', color: 'text-indigo-600' },
-          { id: 'sport', icon: '', label: 'Sport', color: 'text-emerald-600' },
-          { id: 'recipes', icon: '', label: 'Recettes', color: 'text-rose-600' },
-          { id: 'evolution', icon: '', label: 'Évolution', color: 'text-amber-600' },
-          { id: 'settings', icon: '⚙️', label: 'Profil', color: 'text-slate-600' }
-        ].map(tab => (
-          <button 
-            key={tab.id} 
-            onClick={() => setActiveTab(tab.id)} 
-            className={`flex-1 bg-transparent border-none flex flex-col items-center gap-1 transition-all ${activeTab === tab.id ? tab.color : 'text-gray-400'}`}
-          >
-            <span className={`text-xl ${activeTab === tab.id ? 'scale-110' : 'opacity-50 grayscale'}`}>{tab.icon}</span>
-            <span className="text-[10px] font-black uppercase tracking-tighter">{tab.label}</span>
-          </button>
-        ))}
-      </nav>
+    <Routes>
+      <Route path="/" element={<MealTracker />} />
+      <Route path="/sport" element={<SportTracker />} />
+      <Route path="/recipes" element={<RecipeBook />} />
+      <Route path="/shopping" element={<ShoppingList />} /> {/* <-- NOUVELLE LIGNE */}
+      <Route path="/evolution" element={<EvolutionTracker />} />
+      <Route path="/settings" element={<Settings darkMode={darkMode} setDarkMode={setDarkMode} />} />
+    </Routes>
+      <BottomNav />
     </div>
+  );
+};
+
+function App() {
+  return (
+    <Router>
+      <AppContent />
+    </Router>
   );
 }
 

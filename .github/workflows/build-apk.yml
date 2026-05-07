@@ -1,0 +1,60 @@
+name: Build and Publish APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Configuration de Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Configuration de Java (Requis pour Android)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+
+      - name: Installation des dépendances NPM
+        run: npm install
+
+      - name: Compilation du projet React (dist)
+        run: npm run build
+
+      - name: Synchronisation Capacitor
+        run: npx cap sync android
+
+      - name: Rendre Gradle exécutable
+        run: chmod +x android/gradlew
+
+      - name: Compilation de l'APK Android
+        run: cd android && ./gradlew assembleDebug
+
+      - name: Renommer l'APK
+        run: mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/tracker-app.apk
+
+      - name: Générer un tag basé sur la date
+        id: tag_generator
+        run: echo "TAG_NAME=v$(date +'%Y.%m.%d-%H%M')" >> $GITHUB_ENV
+
+      - name: Créer une Release GitHub et attacher l'APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          name: "Mise à jour ${{ env.TAG_NAME }}"
+          files: android/app/build/outputs/apk/debug/tracker-app.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

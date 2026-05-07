@@ -14,7 +14,7 @@ Installer les dépendances :
 2. Installer les dépandances :
 ```
 bash
-cd fitness-tracker
+cd tracker-app
 npm install
 ```
 
@@ -30,3 +30,6 @@ bash
 npm run build
 ```
 
+## Info à savoir :
+
+- en cas de mise à jour de l'application sauvegarder le profil afin de pourvoir l'importer dans la nouvelle version.

@@ -9,8 +9,13 @@ import Onboarding from './Onboarding';
 import { useAsyncStorage } from './hooks/useAsyncStorage';
 import { getEncrypted, saveEncrypted } from './encryptionUtils';
 import ShoppingList from './ShoppingList';
+import { useSettingsStore } from './store/useSettingsStore';
+import { translations } from './translations';
 
 const Settings = ({ darkMode, setDarkMode }) => {
+  const { lang, setLang } = useSettingsStore();
+  const t = (key) => translations[lang][key] || key;
+
   const [goals, setGoals, goalsLoaded] = useAsyncStorage('tracker_goals', { calories: 2500, protein: 160, carbs: 300, fat: 80 });
   const [pinData, setPinData] = useState({ current: '', new: '', confirm: '' });
   const [showPinForm, setShowPinForm] = useState(false);
@@ -18,26 +23,26 @@ const Settings = ({ darkMode, setDarkMode }) => {
   const handleSaveGoals = (e) => {
     e.preventDefault();
     setGoals(goals);
-    alert('Objectifs mis à jour !');
+    alert(t('goalsUpdated'));
   };
 
   const handleChangePin = async (e) => {
     e.preventDefault();
     const actualPin = await getEncrypted('tracker_pin', '1234');
     if (pinData.current !== actualPin) {
-      alert('Le code actuel est incorrect.');
+      alert(t('pinErrorCurrent'));
       return;
     }
     if (pinData.new.length !== 4 || !/^\d+$/.test(pinData.new)) {
-      alert('Le nouveau code doit contenir exactement 4 chiffres.');
+      alert(t('pinErrorLength'));
       return;
     }
     if (pinData.new !== pinData.confirm) {
-      alert('Les nouveaux codes ne correspondent pas.');
+      alert(t('pinErrorMatch'));
       return;
     }
     await saveEncrypted('tracker_pin', pinData.new);
-    alert('Code PIN mis à jour avec succès !');
+    alert(t('pinSuccess'));
     setPinData({ current: '', new: '', confirm: '' });
     setShowPinForm(false);
   };
@@ -76,10 +81,10 @@ const Settings = ({ darkMode, setDarkMode }) => {
         if (data.measurements) await saveEncrypted('tracker_measurements', data.measurements);
         if (data.goals) await saveEncrypted('tracker_goals', data.goals);
         if (data.pin) await saveEncrypted('tracker_pin', data.pin);
-        alert('Données importées ! Rechargez l\'app.');
+        alert(t('importSuccess'));
         window.location.reload();
       } catch (error) {
-        alert('Erreur de fichier.');
+        alert(t('importError'));
       }
     };
     reader.readAsText(file);
@@ -89,49 +94,65 @@ const Settings = ({ darkMode, setDarkMode }) => {
 
   return (
     <div className="p-4 max-w-[480px] mx-auto font-sans pb-24 space-y-4">
+      
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-50">
-        <h2 className="m-0 mb-4 text-lg font-bold text-[#1a1a2e]">🌙 Apparence</h2>
-        <div className="flex justify-between items-center">
-          <span className="text-sm font-semibold text-gray-600">Mode Sombre</span>
-          <button onClick={() => setDarkMode(!darkMode)} className={`border-none px-4 py-2 rounded-full font-bold text-xs transition-all ${darkMode ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
-            {darkMode ? 'Activé' : 'Désactivé'}
+        <h2 className="m-0 mb-4 text-lg font-bold text-[#1a1a2e]">{t('language')}</h2>
+        <div className="flex gap-2">
+          <button onClick={() => setLang('fr')} className={`flex-1 border-none py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${lang === 'fr' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
+            {t('french')}
+          </button>
+          <button onClick={() => setLang('en')} className={`flex-1 border-none py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${lang === 'en' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
+            {t('english')}
           </button>
         </div>
       </div>
+
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-50">
-        <h2 className="m-0 mb-4 text-lg font-bold text-[#1a1a2e]">🎯 Objectifs</h2>
+        <h2 className="m-0 mb-4 text-lg font-bold text-[#1a1a2e]">{t('appearance')}</h2>
+        <div className="flex justify-between items-center">
+          <span className="text-sm font-semibold text-gray-600">{t('darkMode')}</span>
+          <button onClick={() => setDarkMode(!darkMode)} className={`border-none px-4 py-2 rounded-full font-bold text-xs transition-all cursor-pointer ${darkMode ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
+            {darkMode ? t('enabled') : t('disabled')}
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-50">
+        <h2 className="m-0 mb-4 text-lg font-bold text-[#1a1a2e]">{t('goals')}</h2>
         <form onSubmit={handleSaveGoals} className="space-y-3">
           {['calories', 'protein', 'carbs', 'fat'].map(f => (
             <div key={f} className="flex justify-between items-center">
-              <span className="text-sm font-semibold text-gray-500 capitalize">{f}</span>
+              <span className="text-sm font-semibold text-gray-500 capitalize">{t(f)}</span>
               <input type="number" value={goals[f]} onChange={e => setGoals({...goals, [f]: Number(e.target.value)})} className="w-20 p-2 rounded-lg border-2 border-gray-100 text-center text-sm font-bold outline-none focus:border-indigo-500" />
             </div>
           ))}
-          <button type="submit" className="w-full bg-emerald-500 text-white py-2.5 rounded-xl font-bold mt-2 shadow-md shadow-emerald-50">Enregistrer</button>
+          <button type="submit" className="w-full bg-emerald-500 text-white py-2.5 rounded-xl font-bold mt-2 shadow-md shadow-emerald-50 border-none cursor-pointer">{t('save')}</button>
         </form>
       </div>
+
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-50">
-        <h2 className="m-0 mb-4 text-lg font-bold text-[#1a1a2e]">🔒 Sécurité</h2>
+        <h2 className="m-0 mb-4 text-lg font-bold text-[#1a1a2e]">{t('security')}</h2>
         {!showPinForm ? (
-          <button onClick={() => setShowPinForm(true)} className="w-full bg-gray-50 text-gray-600 py-3 rounded-xl font-bold text-sm border-none cursor-pointer">Changer le code PIN</button>
+          <button onClick={() => setShowPinForm(true)} className="w-full bg-gray-50 text-gray-600 py-3 rounded-xl font-bold text-sm border-none cursor-pointer">{t('changePin')}</button>
         ) : (
           <form onSubmit={handleChangePin} className="space-y-3">
-            <input type="password" inputMode="numeric" maxLength="4" placeholder="Code actuel" value={pinData.current} onChange={e => setPinData({...pinData, current: e.target.value})} className="w-full p-3 rounded-xl border-2 border-gray-100 text-center tracking-[10px] text-lg outline-none focus:border-indigo-500" />
-            <input type="password" inputMode="numeric" maxLength="4" placeholder="Nouveau code" value={pinData.new} onChange={e => setPinData({...pinData, new: e.target.value})} className="w-full p-3 rounded-xl border-2 border-gray-100 text-center tracking-[10px] text-lg outline-none focus:border-indigo-500" />
-            <input type="password" inputMode="numeric" maxLength="4" placeholder="Confirmer" value={pinData.confirm} onChange={e => setPinData({...pinData, confirm: e.target.value})} className="w-full p-3 rounded-xl border-2 border-gray-100 text-center tracking-[10px] text-lg outline-none focus:border-indigo-500" />
+            <input type="password" inputMode="numeric" maxLength="4" placeholder={t('currentPin')} value={pinData.current} onChange={e => setPinData({...pinData, current: e.target.value})} className="w-full p-3 rounded-xl border-2 border-gray-100 text-center tracking-[10px] text-lg outline-none focus:border-indigo-500" />
+            <input type="password" inputMode="numeric" maxLength="4" placeholder={t('newPin')} value={pinData.new} onChange={e => setPinData({...pinData, new: e.target.value})} className="w-full p-3 rounded-xl border-2 border-gray-100 text-center tracking-[10px] text-lg outline-none focus:border-indigo-500" />
+            <input type="password" inputMode="numeric" maxLength="4" placeholder={t('confirmPin')} value={pinData.confirm} onChange={e => setPinData({...pinData, confirm: e.target.value})} className="w-full p-3 rounded-xl border-2 border-gray-100 text-center tracking-[10px] text-lg outline-none focus:border-indigo-500" />
             <div className="flex gap-2">
-              <button type="button" onClick={() => setShowPinForm(false)} className="flex-1 bg-gray-100 text-gray-500 py-2.5 rounded-xl font-bold border-none">Annuler</button>
-              <button type="submit" className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl font-bold border-none">Valider</button>
+              <button type="button" onClick={() => setShowPinForm(false)} className="flex-1 bg-gray-100 text-gray-500 py-2.5 rounded-xl font-bold border-none cursor-pointer">{t('cancel')}</button>
+              <button type="submit" className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl font-bold border-none cursor-pointer">{t('validate')}</button>
             </div>
           </form>
         )}
       </div>
+
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-50">
-        <h2 className="m-0 mb-4 text-lg font-bold text-[#1a1a2e]">💾 Sauvegarde</h2>
+        <h2 className="m-0 mb-4 text-lg font-bold text-[#1a1a2e]">{t('backup')}</h2>
         <div className="grid grid-cols-1 gap-3">
-          <button onClick={handleExport} className="bg-indigo-50 text-indigo-600 py-3 rounded-xl font-bold text-sm border-none">Exporter JSON</button>
-          <label className="bg-gray-50 text-gray-600 py-3 rounded-xl font-bold text-sm text-center cursor-pointer">
-            Importer JSON
+          <button onClick={handleExport} className="bg-indigo-50 text-indigo-600 py-3 rounded-xl font-bold text-sm border-none cursor-pointer">{t('export')}</button>
+          <label className="bg-gray-50 text-gray-600 py-3 rounded-xl font-bold text-sm text-center cursor-pointer block">
+            {t('import')}
             <input type="file" accept=".json" onChange={handleImport} className="hidden" />
           </label>
         </div>
@@ -143,19 +164,23 @@ const Settings = ({ darkMode, setDarkMode }) => {
 const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { lang } = useSettingsStore();
+  const t = (key) => translations[lang][key] || key;
+
   const tabs = [
-    { id: '/', icon: '🍽️', label: 'Repas', color: 'text-indigo-600' },
-    { id: '/sport', icon: '💪', label: 'Sport', color: 'text-emerald-600' },
-    { id: '/recipes', icon: '🧑‍🍳', label: 'Recettes', color: 'text-rose-600' },
-    { id: '/evolution', icon: '📈', label: 'Évolution', color: 'text-amber-600' },
-    { id: '/settings', icon: '⚙️', label: 'Profil', color: 'text-slate-600' }
+    { id: '/', icon: '🍽️', label: t('navMeals'), color: 'text-indigo-600' },
+    { id: '/sport', icon: '💪', label: t('navSport'), color: 'text-emerald-600' },
+    { id: '/recipes', icon: '🧑‍🍳', label: t('navRecipes'), color: 'text-rose-600' },
+    { id: '/evolution', icon: '📈', label: t('navEvolution'), color: 'text-amber-600' },
+    { id: '/settings', icon: '⚙️', label: t('navProfile'), color: 'text-slate-600' }
   ];
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-lg flex justify-around py-3 pb-6 border-t border-gray-100 z-[100] rounded-t-[24px] shadow-2xl">
       {tabs.map(tab => {
         const isActive = location.pathname === tab.id;
         return (
-          <button key={tab.id} onClick={() => navigate(tab.id)} className={`flex-1 bg-transparent border-none flex flex-col items-center gap-1 transition-all ${isActive ? tab.color : 'text-gray-400'}`}>
+          <button key={tab.id} onClick={() => navigate(tab.id)} className={`flex-1 bg-transparent border-none flex flex-col items-center gap-1 transition-all cursor-pointer ${isActive ? tab.color : 'text-gray-400'}`}>
             <span className={`text-xl ${isActive ? 'scale-110' : 'opacity-50 grayscale'}`}>{tab.icon}</span>
             <span className="text-[10px] font-black uppercase tracking-tighter">{tab.label}</span>
           </button>
@@ -201,14 +226,14 @@ const AppContent = () => {
 
   return (
     <div className="min-h-screen bg-transparent">
-    <Routes>
-      <Route path="/" element={<MealTracker />} />
-      <Route path="/sport" element={<SportTracker />} />
-      <Route path="/recipes" element={<RecipeBook />} />
-      <Route path="/shopping" element={<ShoppingList />} /> {/* <-- NOUVELLE LIGNE */}
-      <Route path="/evolution" element={<EvolutionTracker />} />
-      <Route path="/settings" element={<Settings darkMode={darkMode} setDarkMode={setDarkMode} />} />
-    </Routes>
+      <Routes>
+        <Route path="/" element={<MealTracker />} />
+        <Route path="/sport" element={<SportTracker />} />
+        <Route path="/recipes" element={<RecipeBook />} />
+        <Route path="/shopping" element={<ShoppingList />} />
+        <Route path="/evolution" element={<EvolutionTracker />} />
+        <Route path="/settings" element={<Settings darkMode={darkMode} setDarkMode={setDarkMode} />} />
+      </Routes>
       <BottomNav />
     </div>
   );

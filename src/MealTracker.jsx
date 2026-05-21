@@ -130,11 +130,11 @@ const MealTracker = () => {
     setIsSearchingAPI(true);
     
     try {
-      const response = await fetch(`https://world.openfoodfacts.org/api/v2/product/${barcode}.json`);
-      const data = await response.json();
+      const offResponse = await fetch(`https://world.openfoodfacts.org/api/v2/product/${barcode}.json`);
+      const offData = await offResponse.json();
       
-      if (data.status === 1) {
-        const p = data.product;
+      if (offData.status === 1) {
+        const p = offData.product;
         const nutriments = p.nutriments;
         setNewFood({
           name: p.product_name_fr || p.product_name || '', category: 'Compléments',
@@ -143,11 +143,37 @@ const MealTracker = () => {
           fat: nutriments.fat_100g || 0, unit: 'g'
         });
         setShowAddFood(true);
-      } else {
-        alert("Produit introuvable dans la base de données OpenFoodFacts.");
+        return;
       }
+
+      const nxResponse = await fetch(`https://trackapi.nutritionix.com/v2/search/item?upc=${barcode}`, {
+        headers: {
+          'x-app-id': 'c8789ccb', 
+          'x-app-key': '0597ca7b8bcbc67df44b4b24505f00e2'
+        }
+      });
+
+      if (nxResponse.ok) {
+        const nxData = await nxResponse.json();
+        if (nxData.foods && nxData.foods.length > 0) {
+          const p = nxData.foods[0];
+          setNewFood({
+            name: p.food_name || '', category: 'Compléments',
+            calories: p.nf_calories || '',
+            protein: p.nf_protein || 0, carbs: p.nf_total_carbohydrate || 0,
+            fat: p.nf_total_fat || 0, unit: 'g'
+          });
+          setShowAddFood(true);
+          return;
+        }
+      }
+
+      setNewFood({ name: `Produit Inconnu (${barcode})`, category: 'Féculents', calories: '', protein: '', carbs: '', fat: '', unit: 'g' });
+      setShowAddFood(true);
+
     } catch (error) {
-      alert("Erreur de connexion. Vérifie ton réseau.");
+      setNewFood({ name: `Produit Inconnu (${barcode})`, category: 'Féculents', calories: '', protein: '', carbs: '', fat: '', unit: 'g' });
+      setShowAddFood(true);
     } finally {
       setIsSearchingAPI(false);
     }
